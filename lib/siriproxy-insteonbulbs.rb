@@ -49,6 +49,7 @@ class SiriProxy::Plugin::InsteonBulbs < SiriProxy::Plugin
           endstring = percentToHex(percent)
           #puts "http://#{@host}:#{@port}/3?0262#{bulb}#{endstring}=I=3"
           Nokogiri::HTML(open("http://#{@host}:#{@port}/1?XB=M=1"))
+          Nokogiri::HTML(open("http://#{@host}:#{@port}/sx.xml?#{bulb}#{endstring}=I=3"))
           Nokogiri::HTML(open("http://#{@host}:#{@port}/3?0262#{bulb}#{endstring}=I=3"))
        }
   end
