@@ -10,6 +10,7 @@ class SiriProxy::Plugin::InsteonBulbs < SiriProxy::Plugin
       @host = config["insteon_hub_ip"]
       @port = config["insteon_hub_port"]
       @allbulbs = nil
+      @allroomsbulbs = nil
       rooms = File.expand_path('~/.siriproxy/house_config.yml')
       if (File::exists?( rooms ))
           @roomlist = YAML.load_file(rooms)
@@ -23,6 +24,16 @@ class SiriProxy::Plugin::InsteonBulbs < SiriProxy::Plugin
             end
           end
       }
+      @roomlist.each { |room|
+          if (room[0] != "house")
+              if (@allroombulbs == nil)
+                  @allroombulbs = @roomlist[room[0]]["lights"]["roomid"]
+                  else
+                  @allroombulbs = @allroombulbs + " " + @roomlist[room[0]]["lights"]["roomid"]
+              end
+          end
+      }
+      puts @allroombulbs
   end
     
   def percentToHex(percent)
@@ -42,16 +53,31 @@ class SiriProxy::Plugin::InsteonBulbs < SiriProxy::Plugin
   def controlLights(percent,location)
       if (location == "all")
           bulbs = @allbulbs.split(" ")
+          roomid = @allroombulbs.split(" ")
       else
           bulbs = @roomlist[location]["lights"]["bulbs"].split(" ")
+          roomid = @roomlist[location]["lights"]["roomid"].split(" ")
       end
-      bulbs.each { |bulb|
+      if (percent == 100 || percent == 0)
+          if (percent == 100)
+              roomlightstatus = "1"
+          end
+          if (percent == 0)
+              roomlightstatus = "3"
+          end
+          roomid.each { |wholeroomlights|
+              Nokogiri::HTML(open("http://#{@host}:#{@port}/1?XB=M=1"))
+              Nokogiri::HTML(open("http://#{@host}:#{@port}/0?1#{roomlightstatus}#{wholeroomlights}=I=0=0"))
+          }
+      else
           endstring = percentToHex(percent)
-          #puts "http://#{@host}:#{@port}/3?0262#{bulb}#{endstring}=I=3"
-          Nokogiri::HTML(open("http://#{@host}:#{@port}/1?XB=M=1"))
-          Nokogiri::HTML(open("http://#{@host}:#{@port}/sx.xml?#{bulb}#{endstring}=I=3"))
-          Nokogiri::HTML(open("http://#{@host}:#{@port}/3?0262#{bulb}#{endstring}=I=3"))
-       }
+          bulbs.each { |bulb|
+              #puts "http://#{@host}:#{@port}/3?0262#{bulb}#{endstring}=I=3"
+              Nokogiri::HTML(open("http://#{@host}:#{@port}/1?XB=M=1"))
+              Nokogiri::HTML(open("http://#{@host}:#{@port}/sx.xml?#{bulb}#{endstring}=I=3"))
+              Nokogiri::HTML(open("http://#{@host}:#{@port}/3?0262#{bulb}#{endstring}=I=3"))
+          }
+      end
   end
     
   def find_active_room(macaddress)
@@ -80,7 +106,7 @@ class SiriProxy::Plugin::InsteonBulbs < SiriProxy::Plugin
      end
    end
     
-    listen_for /^(?:How do I|How can I|What can I|Do I|How I|How are you|Show the commands for|Show the commands to|What are the commands for) (?:control |do with |controlling |do at )?(?:the)? (?:lights|light)/i do
+    listen_for /^(?:How do I|How can I|What can I|Do I|How I|How are you|Show the commands for|Show the commands to|What are the commands for) (?:control |do with |controlling |do at )?(?:the )?(?:lights|light)/i do
         say "Here are the commands for controlling the lights:\n\nTurn off the lights in the room your are in:\n  \"Turn off the lights\"\n\nTurn on the lights in the room your are in:\n  \"Turn on the lights\"\n\nTurn off the lights in a specific room:\n  \"Turn off the lights in the living room\"\n\nSet lights to a percentage in the room you are in:\n  \"Set lights to 50 percent\"\n\nSet lights to a percentage in a specific room:\n  \"Set lights to 50 percent in the living room\"\n\nTurn off the lights in the entire house/apartment:\n  \"Turn off the lights everywhere\"\n\nTurn on the lights in the entire house/apartment:\n  \"Turn on the lights everywhere\"\n\nSet lights to a percentage in the entire house/apartment:\n  \"Set lights to 50 percent everywhere:\"",spoken: "Here are the commands for controlling the lights"
         request_completed
     end
