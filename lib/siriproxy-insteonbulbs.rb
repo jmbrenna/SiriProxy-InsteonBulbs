@@ -65,17 +65,31 @@ class SiriProxy::Plugin::InsteonBulbs < SiriProxy::Plugin
           if (percent == 0)
               roomlightstatus = "3"
           end
-          roomid.each { |wholeroomlights|
-              Nokogiri::HTML(open("http://#{@host}:#{@port}/1?XB=M=1"))
-              Nokogiri::HTML(open("http://#{@host}:#{@port}/0?1#{roomlightstatus}#{wholeroomlights}=I=0=0"))
+          Thread.new {
+            roomid.each { |wholeroomlights|
+                Nokogiri::HTML(open("http://#{@host}:#{@port}/1?XB=M=1"))
+                Nokogiri::HTML(open("http://#{@host}:#{@port}/0?1#{roomlightstatus}#{wholeroomlights}=I=0=0"))
+            }
+            roomid.each { |wholeroomlights|
+                Nokogiri::HTML(open("http://#{@host}:#{@port}/1?XB=M=1"))
+                Nokogiri::HTML(open("http://#{@host}:#{@port}/0?1#{roomlightstatus}#{wholeroomlights}=I=0=0"))
+            }
           }
       else
           endstring = percentToHex(percent)
-          bulbs.each { |bulb|
+          Thread.new {
+            bulbs.each { |bulb|
               #puts "http://#{@host}:#{@port}/3?0262#{bulb}#{endstring}=I=3"
               Nokogiri::HTML(open("http://#{@host}:#{@port}/1?XB=M=1"))
               Nokogiri::HTML(open("http://#{@host}:#{@port}/sx.xml?#{bulb}#{endstring}=I=3"))
               Nokogiri::HTML(open("http://#{@host}:#{@port}/3?0262#{bulb}#{endstring}=I=3"))
+            }
+            bulbs.each { |bulb|
+                #puts "http://#{@host}:#{@port}/3?0262#{bulb}#{endstring}=I=3"
+                Nokogiri::HTML(open("http://#{@host}:#{@port}/1?XB=M=1"))
+                Nokogiri::HTML(open("http://#{@host}:#{@port}/sx.xml?#{bulb}#{endstring}=I=3"))
+                Nokogiri::HTML(open("http://#{@host}:#{@port}/3?0262#{bulb}#{endstring}=I=3"))
+            }
           }
       end
   end
